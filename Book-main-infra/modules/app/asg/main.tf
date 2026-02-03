@@ -26,3 +26,15 @@ resource "aws_autoscaling_group" "app_asg" {
     propagate_at_launch = true
   }
 }
+resource "aws_autoscaling_policy" "app_scale_out" {
+  name                   = var.app_scale_out_policy_name
+  autoscaling_group_name = aws_autoscaling_group.app_asg.name
+  policy_type            = "TargetTrackingScaling"
+
+  target_tracking_configuration {
+    predefined_metric_specification {
+      predefined_metric_type = "ASGAverageCPUUtilization"
+    }
+    target_value = var.scale_out_target_value
+  }
+}
