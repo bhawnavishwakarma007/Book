@@ -60,7 +60,4 @@ variable "app_private_sg_name" {
   description = "Security Group name for Application servers (private subnet)"
   type        = string
 }
-variable "rds_private_sg_name" {
-  description = "Security Group name for RDS database (private subnet)"
-  type        = string
-}
+

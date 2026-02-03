@@ -1,9 +1,9 @@
 ##################################
-# Create AMI from App EC2
+# app AMI Creation
 ##################################
 
 resource "aws_ami_from_instance" "app_ami" {
-  name                    = "${var.app_ami_name}-${formatdate("YYYYMMDD-HHmmss", timestamp())}"
+  name                    = var.app_ami_name
   source_instance_id      = var.source_instance_id
   snapshot_without_reboot = false
 
@@ -13,7 +13,7 @@ resource "aws_ami_from_instance" "app_ami" {
 }
 
 ##################################
-# Launch Template
+# app Launch Template
 ##################################
 
 resource "aws_launch_template" "app" {
