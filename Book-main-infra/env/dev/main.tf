@@ -75,7 +75,7 @@ module "app_launch_template" {
   app_launch_template_description = "Launch template for app ASG"
 
   instance_type     = "t2.micro"
-  key_name          = "us-east-1"
+  key_name          = "book-key"
   security_group_id = module.networking.app_private_sg_id
 
   app_instance_name = "app-lt"

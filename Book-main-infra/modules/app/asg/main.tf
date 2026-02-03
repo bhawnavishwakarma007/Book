@@ -7,7 +7,6 @@ resource "aws_autoscaling_group" "app_asg" {
   min_size         = var.min_size
   max_size         = var.max_size
   desired_capacity = var.desired_capacity
-
   target_group_arns = [var.target_group_arn]
 
   launch_template {
