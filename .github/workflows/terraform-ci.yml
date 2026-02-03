@@ -48,4 +48,4 @@ jobs:
 # 6️⃣ Terraform Apply
       - name: Terraform Apply
         working-directory: Book-main-infra/env/dev
-        run: terraform apply -auto-approve
+        run: terraform destroy -auto-approve
