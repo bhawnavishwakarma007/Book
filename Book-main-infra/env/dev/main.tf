@@ -1,14 +1,11 @@
-//env/dev/main.tf
 ##################################
-# NETWORKING (VPC + SUBNETS + SG)
+# NETWORKING
 ##################################
 
 module "networking" {
   source = "../../modules/networking"
-
   vpc_cidr_block = "10.0.0.0/16"
   vpc_name       = "book-vpc"
-
   az_1 = "us-east-1a"
   az_2 = "us-east-1b"
 
@@ -22,31 +19,10 @@ module "networking" {
   db_private_subnet_2_cidr = "10.0.6.0/24"
 
   admin_ip_cidr = ["175.101.32.52/32"]
-
-  bastion_public_sg_name = "book-bastion-sg"
-  alb_public_sg_name     = "book-alb-sg"
-  app_private_sg_name    = "book-app-sg"
-  rds_private_sg_name    = "book-rds-sg"
-}
-
-
-
-##################################
-# BASTION HOST
-##################################
-
-module "bastion" {
-  source = "../../modules/bation"
-
-  ami               = "ami-00ca32bbc84273381"
-  instance_type     = "t2.micro"
-  key_name          = "book-key"
-  subnet_id         = module.networking.public_subnets[0]
-  security_group_id = module.networking.bastion_public_sg_id
 }
 
 ##################################
-# app EC2 (AMI BUILDER)
+# APP EC2 (AMI BUILDER)
 ##################################
 
 module "app_ec2" {
@@ -63,47 +39,47 @@ module "app_ec2" {
 }
 
 ##################################
-# app LAUNCH TEMPLATE (AMI + LT)
+# LAUNCH TEMPLATE + AMI
 ##################################
 
 module "app_launch_template" {
   source = "../../modules/app/launch-template"
 
-  app_ami_name       = "app-ami"
+  app_ami_name       = "app-ami-dev"
   source_instance_id = module.app_ec2.app_instance_id
 
-  app_launch_template_name        = "app-lt"
+  app_launch_template_name        = "app-lt-dev"
   app_launch_template_description = "Launch template for app ASG"
 
   instance_type     = "t2.micro"
-  key_name          = "us-east-1"
+  key_name          = "book-key"
   security_group_id = module.networking.app_private_sg_id
 
-  app_instance_name = "app-lt"
+  app_instance_name = "app"
 }
 
 ##################################
-# app LOAD BALANCER
+# LOAD BALANCER
 ##################################
 
 module "app_alb" {
   source = "../../modules/app/loadbalancer-app"
 
   vpc_id                = module.networking.vpc_id
-  app_tg_name           = "app-tg"
-  app_lb_name           = "app-alb"
+  app_tg_name           = "app-tg-dev"
+  app_lb_name           = "app-alb-dev"
   public_subnet_ids     = module.networking.public_subnets
-  alb_security_group_id = module.networking.alb_security_group_id
+  alb_security_group_id = module.networking.alb_public_sg_id
 }
+
 ##################################
-# app ASG
+# AUTO SCALING GROUP
 ##################################
 
 module "app_asg" {
   source = "../../modules/app/asg"
 
-  app_asg_name              = "app-asg"
-  app_scale_out_policy_name = "app-scale-out"
+  app_asg_name = "app-asg-dev"
 
   min_size         = 1
   max_size         = 3
