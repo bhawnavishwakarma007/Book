@@ -1,268 +1,259 @@
-# 📘 Book Backend — AWS DevOps End-to-End Deployment
+# AWS DevOps End-to-End Deployment Project
 
-> Production-grade Node.js backend deployed on AWS using Terraform, Auto Scaling, Load Balancer, Private Networking, MongoDB Atlas and CI/CD ready architecture
+## Description
+This project demonstrates a complete **production-style DevOps lifecycle** for a cloud-native Node.js web application deployed on AWS.
 
----
+It includes infrastructure provisioning, CI/CD automation, load balancing, auto-scaling, monitoring, alerting, and secure database connectivity.
 
-## 🧠 Architecture Overview
-
-```
-Client / Postman / Browser
-          ↓
-Application Load Balancer (Public Subnet)
-          ↓
-Auto Scaling Group (Private Subnets)
-          ↓
-Node.js Backend (PM2 running on EC2)
-          ↓
-NAT Gateway (Outbound Internet)
-          ↓
-MongoDB Atlas (External DB)
-```
+The application runs on private EC2 instances behind an Application Load Balancer, connects securely to MongoDB Atlas via a NAT Gateway, and is deployed using an automated pipeline.
 
 ---
 
-## ☁️ AWS Infrastructure (Terraform)
-
-Provisioned using modular Terraform.
-
-### Created Resources
-
-| Layer    | Resources                              |
-|----------|----------------------------------------|
-| Network  | VPC, Public & Private Subnets          |
-| Internet | Internet Gateway + NAT Gateway         |
-| Security | Bastion SG, ALB SG, App SG             |
-| Compute  | EC2 (AMI Builder) + Launch Template    |
-| Scaling  | Auto Scaling Group                     |
-| Traffic  | Application Load Balancer              |
-| Database | MongoDB Atlas                          |
-| Process Manager | PM2                             |
-
-### 📁 Terraform Folder Structure
-
-```
-terraform/
-│
-├── environments/dev
-│   └── main.tf
-│
-├── modules
-│   ├── networking
-│   ├── bastion
-│   ├── app/ec2
-│   ├── app/launch-template
-│   ├── app/asg
-│   └── app/loadbalancer
-```
+## Features
+- Infrastructure as Code using Terraform
+- Automated CI/CD pipeline (GitHub Actions + Jenkins)
+- Private EC2 backend behind Application Load Balancer
+- Rolling deployments with zero downtime
+- Auto Scaling based on CPU utilization
+- MongoDB Atlas secure connectivity via NAT Gateway
+- Health-check based traffic routing
+- Secure cookie-based JWT authentication
+- Cloud monitoring & alerting
+- Production-grade network architecture
 
 ---
 
-## 🔐 Networking Design
+## Architecture
 
-| Component   | Public | Private          |
-|-------------|--------|------------------|
-| ALB         | ✅     | ❌               |
-| Bastion     | ✅     | ❌               |
-| App Servers | ❌     | ✅               |
-| Database    | ❌     | External (Atlas) |
+### How It Works
+    Developer
+        ↓
+    GitHub Repository
+        ↓
+    GitHub Actions (Build & Test)
+        ↓
+    Artifact stored in S3
+        ↓
+    Jenkins (Deployment)
+        ↓
+    CloudFront (optional CDN)
+        ↓
+    Application Load Balancer
+        ↓
+    Auto Scaling Group (Private EC2 Instances)
+        ↓
+    Node.js Application (PM2)
+        ↓
+    NAT Gateway (Outbound Internet)
+        ↓
+    MongoDB Atlas
+        ↓
+    Monitoring: CloudWatch + Prometheus + Grafana
 
-> Private EC2 instances access internet using NAT Gateway Elastic IP.
->
-> MongoDB Atlas whitelist → NAT Gateway EIP
-
----
-
-## 🗄 MongoDB Atlas Setup
-
-1. Create cluster
-2. Create DB user
-3. Add Network Access
-4. Add NAT Gateway IP:
-
-```
-107.xx.xx.xx/32
-```
-
----
-
-## ⚙️ EC2 Application Setup
-
-SSH to private instance through bastion.
-
-```bash
-ssh ec2-user@<private-ip>
-```
-
-### Create environment file
-
-```bash
-nano .env
-```
-
-```env
-PORT=3000
-DATABASE_URL=mongodb+srv://<user>:<pass>@cluster.mongodb.net/bookdb
-JWT_SECRET=booksecret123
-```
+### Network Flow
+    Client → ALB → Private EC2 → NAT Gateway → MongoDB Atlas
 
 ---
 
-## ▶️ Run Application
+## Installation
 
-Install dependencies:
+### 1. Clone Repository
+    git clone https://github.com/your-repo/project.git
+    cd project
 
-```bash
-npm install
-```
+### 2. Install Dependencies
+    npm install
 
-Start with PM2:
+### 3. Configure Environment Variables
+Create a `.env` file:
 
-```bash
-sudo npm install -g pm2
-pm2 start index.js --name book-backend
-pm2 save
-pm2 startup
-```
+    PORT=3000
+    DATABASE_URL=mongodb+srv://username:password@cluster.mongodb.net/bookdb
+    JWT_SECRET=your_secret
 
-Test locally:
-
-```bash
-curl localhost:3000/health
-```
-
-Expected:
-
-```json
-{"status":"OK"}
-```
+### 4. Run Application Locally
+    node src/index.js
 
 ---
 
-## 🌐 Load Balancer Configuration
+## Usage
 
-Target Group settings:
+### Health Check
+    curl http://localhost:3000/health
 
-| Setting           | Value   |
-|-------------------|---------|
-| Protocol          | HTTP    |
-| Port              | 3000    |
-| Health Check Path | /health |
+### Register User
+    curl -X POST http://ALB-DNS/api/auth/signup \
+    -H "Content-Type: application/json" \
+    -d '{"name":"Test","age":22,"username":"testuser","email":"test@test.com","password":"123456"}'
 
-Now test:
-
-```
-http://<ALB-DNS>/health
-```
-
----
-
-## 🔑 Authentication Flow
-
-Application requires OTP verification before login.
-
-**Flow:**
-
-```
-Signup → Verify OTP → Login
-```
-
----
-
-## 🧪 API Testing
-
-### Register
-
-```bash
-curl -X POST http://ALB/api/auth/signup \
--H "Content-Type: application/json" \
--d '{"name":"Test User","age":22,"username":"testuser","email":"test@test.com","password":"123456"}'
-```
-
-### Verify OTP
-
-> (Mock OTP in project = 1234)
-
-```bash
-curl -X POST http://ALB/api/auth/verify \
--H "Content-Type: application/json" \
--d '{"email":"test@test.com","otp":1234}'
-```
+### Verify User (OTP = 1234)
+    curl -X POST http://ALB-DNS/api/auth/verify \
+    -H "Content-Type: application/json" \
+    -d '{"email":"test@test.com","otp":1234}'
 
 ### Login
-
-```bash
-curl -X POST http://ALB/api/auth/login \
--H "Content-Type: application/json" \
--d '{"email":"test@test.com","password":"123456"}'
-```
+    curl -X POST http://ALB-DNS/api/auth/login \
+    -H "Content-Type: application/json" \
+    -d '{"email":"test@test.com","password":"123456"}'
 
 ---
 
-## 📊 Verify Data in MongoDB
+## Configuration
 
-Open:
+### Application Settings
+- Express runs behind reverse proxy
+- Health endpoint: `/health`
+- API base path: `/api`
+- Cookie-based JWT authentication
+- Runs on port `3000`
 
-```
-MongoDB Atlas → Browse Collections → users
-```
+### Reverse Proxy Support
+    app.set("trust proxy", 1);
 
-You will see:
-
-```
-verified: true
-```
-
----
-
-## 🧩 Important DevOps Concepts Implemented
-
-| Concept                      | Implemented |
-|------------------------------|-------------|
-| Private EC2                  | ✅          |
-| Bastion SSH                  | ✅          |
-| NAT Outbound DB Access       | ✅          |
-| ALB Health Checks            | ✅          |
-| Auto Scaling                 | ✅          |
-| Immutable AMI                | ✅          |
-| Process Manager (PM2)        | ✅          |
-| Secure Environment Variables | ✅          |
+### Secure Cookie Setup
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "none"
+    });
 
 ---
 
-## 🚨 Common Errors & Fixes
+## Environment Variables
 
-| Problem          | Cause                   | Fix            |
-|------------------|-------------------------|----------------|
-| 502 Bad Gateway  | Wrong target group port | Use 3000       |
-| Mongo Timeout    | IP not whitelisted      | Add NAT EIP    |
-| Cannot GET       | Used GET instead of POST| Use POST       |
-| User not verified| OTP required            | Call verify API|
-
----
-
-## 🎯 Final Result
-
-You successfully deployed a production-style backend infrastructure:
-
-- ✔ Private servers
-- ✔ Load balanced traffic
-- ✔ Auto scaling
-- ✔ Secure DB connection
-- ✔ OTP authentication
-- ✔ Persistent background service
+| Variable | Description |
+|--------|------|
+| PORT | Application port |
+| DATABASE_URL | MongoDB Atlas connection string |
+| JWT_SECRET | JWT signing secret |
 
 ---
 
-## 🧠 Interview Explanation
+## API Endpoints
 
-> *"I deployed a Node.js backend in private subnets behind an Application Load Balancer with Auto Scaling. The application connects securely to MongoDB Atlas through a NAT Gateway, and the process is managed using PM2. Infrastructure was provisioned using Terraform with modular design."*
+| Method | Endpoint | Description |
+|------|------|------|
+| GET | /health | Health check |
+| POST | /api/auth/signup | Register user |
+| POST | /api/auth/verify | Verify OTP |
+| POST | /api/auth/login | Login |
+| Protected | /api/cart | Requires authentication |
 
 ---
 
-## 🚀 Next Improvements (Planned)
+## Deployment
 
-- [ ] CloudFront CDN + HTTPS
-- [ ] Domain name + ACM
-- [ ] CI/CD deployment pipeline
-- [ ] Monitoring (CloudWatch + Grafana)
+### Terraform Infrastructure
+Provision AWS resources:
+
+    cd terraform/environments/dev
+    terraform init
+    terraform apply
+
+### Resources Created
+- VPC (public + private subnets)
+- Internet Gateway & NAT Gateway
+- Bastion Host
+- Application Load Balancer
+- Auto Scaling Group
+- Launch Template (AMI based)
+- Security Groups
+- Monitoring resources
+
+---
+
+## CI/CD Pipeline
+
+### Continuous Integration (GitHub Actions)
+- Checkout code
+- Install dependencies
+- Run tests
+- Build artifact
+- Upload artifact to S3
+
+### Continuous Deployment (Jenkins)
+- Fetch artifact
+- Stop old app
+- Deploy new version
+- Restart service
+- Validate using ALB health checks
+
+---
+
+## Run Application in Production (EC2)
+
+Install PM2:
+    sudo npm install -g pm2
+
+Start Application:
+    pm2 start src/index.js --name backend
+    pm2 save
+    pm2 startup
+
+Verify:
+    curl http://localhost:3000/health
+
+---
+
+## Monitoring
+
+### Metrics
+- CPU & Memory usage
+- Request latency
+- Error rate
+- Scaling events
+
+### Tools
+- Amazon CloudWatch
+- Prometheus
+- Grafana
+
+### Alerts
+- High CPU usage
+- Instance failure
+- Application downtime
+
+---
+
+## Troubleshooting
+
+### 502 Bad Gateway
+Cause: Target group port mismatch  
+Fix: Target group must use port `3000`
+
+### Cannot GET /api/*
+Cause: Browser GET request instead of POST  
+Fix: Use curl or Postman
+
+### MongoDB Connection Failure
+Possible reasons:
+- NAT Gateway IP not whitelisted
+- Wrong credentials
+- Missing database name
+
+Check outbound IP:
+    curl https://api.ipify.org
+
+Whitelist this IP in MongoDB Atlas.
+
+---
+
+## Contributing
+1. Fork repository
+2. Create feature branch
+3. Commit changes
+4. Open pull request
+
+---
+
+## License
+MIT License
+
+---
+
+## Final Outcome
+- Fully automated infrastructure
+- Zero-downtime deployments
+- Highly available architecture
+- Secure private networking
+- Production-grade monitoring
