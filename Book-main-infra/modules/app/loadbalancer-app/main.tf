@@ -1,22 +1,29 @@
 ##################################
-# Frontend Target Group
+# Application Target Group
 ##################################
 
 resource "aws_lb_target_group" "app_tg" {
-  name     = var.app_tg_name
-  port     = 80
-  protocol = "HTTP"
-  vpc_id   = var.vpc_id
+  name        = var.app_tg_name
+  port        = 3000                 # ✅ FIXED
+  protocol    = "HTTP"
+  target_type = "instance"
+  vpc_id      = var.vpc_id
 
   health_check {
-    path                = "/"
-    interval            = 30
+    path                = "/health"  # ✅ FIXED
+    port                = "traffic-port"
+    interval            = 15
     timeout             = 5
     healthy_threshold   = 2
     unhealthy_threshold = 2
     matcher             = "200"
   }
+
+  tags = {
+    Name = var.app_tg_name
+  }
 }
+
 
 ##################################
 # Frontend Application Load Balancer
