@@ -11,8 +11,8 @@ app.set("trust proxy", 1);
 
 // ✅ FIXED CORS
 const allowedOrigins = [
-  "http://localhost:5173",
-  "http://localhost:8080",
+  "http://app-alb-2140255652.us-east-1.elb.amazonaws.com",
+ // "http://localhost:8080",
 ];
 
 app.use(
